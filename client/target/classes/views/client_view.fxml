@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="10" alignment="CENTER" xmlns="http://javafx.com/javafx/11.0.14-internal" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.chat.controllers.EchoClientController">
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+    
+    <TextArea fx:id="chatArea" editable="false" VBox.vgrow="ALWAYS" wrapText="true"/>
+    
+    <HBox spacing="10">
+        <TextField fx:id="messageInput" HBox.hgrow="ALWAYS" promptText="Nhập tin nhắn tại đây..."/>
+        <Button text="Gửi" onAction="#sendMessage" defaultButton="true"/>
+    </HBox>
+</VBox>
