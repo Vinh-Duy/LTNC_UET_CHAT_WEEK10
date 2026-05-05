@@ -1,50 +1,77 @@
-package com.chat;
+package com.chat; // Nhớ sửa lại package cho đúng với của bạn nhé
 
-import java.io.*;
-import java.net.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class EchoServer {
     private static final int PORT = 8080;
+    
+    // Khởi tạo bộ ghi nhật ký (Logger) theo yêu cầu của Bài 2
+    private static final Logger logger = Logger.getLogger(EchoServer.class.getName());
 
     public static void main(String[] args) {
-        System.out.println("Server đang khởi động trên cổng " + PORT + "...");
+        logger.info("Server đang khởi động trên cổng " + PORT + "...");
+        
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("Client mới đã kết nối: " + clientSocket.getInetAddress());
-
-                // Xử lý mỗi client trong một luồng (Thread) riêng biệt
-                new Thread(new ClientHandler(clientSocket)).start();
-            } // <--- TRƯỚC ĐÓ BẠN BỊ COPY THIẾU DẤU NGOẶC NÀY!
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-}
-
-// Lớp xử lý logic Echo cho từng Client
-class ClientHandler implements Runnable {
-    private Socket socket;
-
-    public ClientHandler(Socket socket) {
-        this.socket = socket;
-    }
-
-    @Override
-    public void run() {
-        try (
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true)
-        ) {
-            String inputLine;
-            // Lắng nghe tin nhắn từ Client
-            while ((inputLine = in.readLine()) != null) {
-                System.out.println("Server nhận được: " + inputLine);
-                // Ngay lập tức trả về chính xác tin nhắn đó cho Client
-                out.println(inputLine);
+                String clientIP = clientSocket.getInetAddress().getHostAddress();
+                
+                // Ghi log: Trạng thái kết nối và địa chỉ IP của Client
+                logger.info("Client mới đã kết nối. IP: " + clientIP);
+                
+                // Cấp cho mỗi Client một luồng (Thread) riêng biệt để không block Server
+                new Thread(new ClientHandler(clientSocket, clientIP)).start();
             }
         } catch (IOException e) {
-            System.out.println("Một Client đã ngắt kết nối.");
+            logger.log(Level.SEVERE, "Lỗi khi khởi động Server: ", e);
+        }
+    }
+    
+    // Lớp xử lý logic cho từng Client riêng biệt
+    private static class ClientHandler implements Runnable {
+        private Socket socket;
+        private String clientIP;
+
+        public ClientHandler(Socket socket, String clientIP) {
+            this.socket = socket;
+            this.clientIP = clientIP;
+        }
+
+        @Override
+        public void run() {
+            try (
+                BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                PrintWriter out = new PrintWriter(socket.getOutputStream(), true)
+            ) {
+                String message;
+                while ((message = in.readLine()) != null) {
+                    // Ghi log: Sự kiện nhận tin nhắn từ Client
+                    logger.info("Nhận từ [" + clientIP + "]: " + message);
+                    
+                    // Trả về đúng tin nhắn cho người gửi (Echo)
+                    out.println("Server (Echo): " + message);
+                    
+                    // Ghi log: Sự kiện đã phản hồi
+                    logger.info("Đã gửi phản hồi cho [" + clientIP + "]");
+                }
+            } catch (IOException e) {
+                logger.warning("Kết nối bị gián đoạn từ IP: " + clientIP);
+            } finally {
+                try {
+                    socket.close();
+                    // Ghi log: Trạng thái ngắt kết nối
+                    logger.info("Client [" + clientIP + "] đã ngắt kết nối.");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }
